@@ -1,0 +1,247 @@
+
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JB GARAGE</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#101010;color:white;font-family:Arial,sans-serif}
+header{background:#1d1d1d;padding:20px;border-bottom:3px solid #e22}
+h1{margin:0;font-size:27px}
+h1 span{color:#e33}
+main{padding:15px;max-width:850px;margin:auto}
+section{background:#202020;padding:18px;border-radius:12px;margin:12px 0}
+input,select,textarea{width:100%;padding:12px;margin:6px 0 12px;background:#111;color:white;border:1px solid #555;border-radius:7px;font-size:16px}
+button{padding:12px;border:0;border-radius:8px;background:#d22;color:white;font-weight:bold;margin:5px;cursor:pointer}
+nav{display:flex;flex-wrap:wrap;gap:5px}
+nav button{flex:1}
+label{font-size:13px;color:#bbb}
+.item{background:#292929;padding:13px;margin:9px 0;border-radius:8px}
+small{color:#aaa}
+.hidden{display:none}
+.status{color:#ffb3b3;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<header>
+<h1>JB <span>GARAGE</span></h1>
+<small>Gestión de taller mecánico</small>
+</header>
+<main>
+<section id="login">
+<h2>Acceso administrador</h2>
+<form id="loginForm">
+<label>Correo electrónico</label>
+<input id="email" type="email" required>
+<label>Contraseña</label>
+<input id="password" type="password" required>
+<button>Entrar</button>
+</form>
+<p id="loginMsg" class="status"></p>
+</section>
+
+<div id="app" class="hidden">
+<nav>
+<button onclick="show('clientes')">Clientes</button>
+<button onclick="show('vehiculos')">Vehículos</button>
+<button onclick="show('ordenes')">Entradas</button>
+<button onclick="logout()">Salir</button>
+</nav>
+
+<section id="clientes">
+<h2>Clientes</h2>
+<form id="clientForm">
+<label>Nombre y apellidos</label>
+<input name="name" required>
+<label>DNI / NIF</label>
+<input name="nif">
+<label>Teléfono</label>
+<input name="phone" type="tel">
+<label>Correo electrónico</label>
+<input name="email" type="email">
+<label>Dirección</label>
+<input name="address">
+<label>Observaciones</label>
+<textarea name="notes"></textarea>
+<button>Guardar cliente</button>
+</form>
+<h3>Clientes registrados</h3>
+<div id="clientList"></div>
+</section>
+
+<section id="vehiculos" class="hidden">
+<h2>Vehículos</h2>
+<form id="carForm">
+<label>Cliente propietario</label>
+<select name="client_id" id="carClient" required></select>
+<label>Matrícula</label>
+<input name="plate" required>
+<label>Marca</label>
+<input name="make">
+<label>Modelo</label>
+<input name="model">
+<label>Bastidor (VIN)</label>
+<input name="vin">
+<label>Kilómetros</label>
+<input name="km" type="number" min="0">
+<label>Observaciones</label>
+<textarea name="notes"></textarea>
+<button>Guardar vehículo</button>
+</form>
+<h3>Vehículos registrados</h3>
+<div id="carList"></div>
+</section>
+
+<section id="ordenes" class="hidden">
+<h2>Entradas al taller</h2>
+<form id="jobForm">
+<label>Vehículo</label>
+<select name="car_id" id="jobCar" required></select>
+<label>Fecha de entrada</label>
+<input name="entry_date" type="date" required>
+<label>Kilómetros de entrada</label>
+<input name="km" type="number" min="0">
+<label>Estado</label>
+<select name="status">
+<option>Recibido</option>
+<option>En diagnóstico</option>
+<option>En reparación</option>
+<option>Terminado</option>
+<option>Entregado</option>
+</select>
+<label>Avería o trabajo solicitado</label>
+<textarea name="complaint"></textarea>
+<label>Trabajos realizados</label>
+<textarea name="work_done"></textarea>
+<button>Guardar entrada</button>
+</form>
+<h3>Órdenes registradas</h3>
+<div id="jobList"></div>
+</section>
+<p id="message" class="status"></p>
+</div>
+</main>
+
+<script>
+const URL_SUPA="https://udzkofwobmbechzubgfy.supabase.co";
+const KEY="sb_publishable_isb-Y6pov01tXKmL3mMVDQ_etfpxYn5";
+const db=window.supabase.createClient(URL_SUPA,KEY);
+let user=null;
+let clients=[],cars=[],jobs=[];
+
+function el(id){return document.getElementById(id)}
+function safe(s){
+return String(s??"").replace(/[&<>"']/g,c=>({
+"&":"&amp;","<":"&lt;",">":"&gt;",
+'"':"&quot;","'":"&#39;"
+})[c]);
+}
+function show(id){
+["clientes","vehiculos","ordenes"].forEach(x=>
+el(x).classList.toggle("hidden",x!==id));
+}
+function msg(t){el("message").textContent=t}
+
+el("loginForm").onsubmit=async e=>{
+e.preventDefault();
+el("loginMsg").textContent="Comprobando acceso...";
+const {data,error}=await db.auth.signInWithPassword({
+email:el("email").value.trim(),
+password:el("password").value
+});
+if(error){el("loginMsg").textContent=error.message;return}
+await start(data.user);
+};
+
+async function start(u){
+user=u;
+el("login").classList.add("hidden");
+el("app").classList.remove("hidden");
+el("password").value="";
+await load();
+}
+async function logout(){
+await db.auth.signOut();
+user=null;
+el("app").classList.add("hidden");
+el("login").classList.remove("hidden");
+el("loginMsg").textContent="";
+}
+async function load(){
+msg("Cargando datos...");
+const [a,b,c]=await Promise.all([
+db.from("jb_clients").select("*").order("created_at",{ascending:false}),
+db.from("jb_cars").select("*").order("created_at",{ascending:false}),
+db.from("jb_jobs").select("*").order("created_at",{ascending:false})
+]);
+const errors=[a.error,b.error,c.error].filter(Boolean);
+if(errors.length){msg(errors.map(x=>x.message).join("\n"));return}
+clients=a.data||[];
+cars=b.data||[];
+jobs=c.data||[];
+render();
+msg("");
+}
+function options(rows,id,label){
+const sel=el(id);
+sel.replaceChildren();
+const first=document.createElement("option");
+first.value="";
+first.textContent="Seleccionar...";
+sel.append(first);
+rows.forEach(r=>{
+const opt=document.createElement("option");
+opt.value=r.id;
+opt.textContent=label(r);
+sel.append(opt);
+});
+}
+function render(){
+options(clients,"carClient",x=>x.name);
+options(cars,"jobCar",x=>x.plate+" · "+(x.make||"")+" "+(x.model||""));
+el("clientList").innerHTML=clients.map(x=>
+`<div class="item"><b>${safe(x.name)}</b><p>${safe(x.phone)} · ${safe(x.nif)}</p><small>${safe(x.email)}</small></div>`
+).join("")||"<p>Sin clientes todavía.</p>";
+el("carList").innerHTML=cars.map(x=>{
+const owner=clients.find(c=>c.id===x.client_id);
+return `<div class="item"><b>${safe(x.plate)}</b><p>${safe(x.make)} ${safe(x.model)}</p><small>Cliente: ${safe(owner?.name||"")}</small></div>`;
+}).join("")||"<p>Sin vehículos todavía.</p>";
+el("jobList").innerHTML=jobs.map(x=>{
+const car=cars.find(c=>c.id===x.car_id);
+return `<div class="item"><b>${safe(car?.plate||"Vehículo")}</b><p>${safe(x.entry_date)} · ${safe(x.status)}</p><p>${safe(x.complaint)}</p><small>${safe(x.work_done)}</small></div>`;
+}).join("")||"<p>Sin entradas todavía.</p>";
+}
+async function save(formId,table){
+const form=el(formId);
+const fd=new FormData(form);
+const record=Object.fromEntries(fd.entries());
+record.user_id=user.id;
+if("km" in record)record.km=record.km===""?null:Number(record.km);
+msg("Guardando...");
+const {error}=await db.from(table).insert(record);
+if(error){msg("Error: "+error.message);return}
+form.reset();
+if(formId==="jobForm")el("jobDate").valueAsDate=new Date();
+await load();
+msg("Guardado correctamente.");
+}
+el("clientForm").onsubmit=e=>{
+e.preventDefault();save("clientForm","jb_clients");
+};
+el("carForm").onsubmit=e=>{
+e.preventDefault();save("carForm","jb_cars");
+};
+el("jobForm").onsubmit=e=>{
+e.preventDefault();save("jobForm","jb_jobs");
+};
+el("jobForm").querySelector('[name="entry_date"]').id="jobDate";
+el("jobDate").valueAsDate=new Date();
+db.auth.getUser().then(({data})=>{
+if(data?.user)start(data.user);
+});
+</script>
+</body>
+</html>

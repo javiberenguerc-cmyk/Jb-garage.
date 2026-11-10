@@ -1,247 +1,49 @@
-
-<!doctype html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>JB GARAGE</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-*{box-sizing:border-box}
-body{margin:0;background:#101010;color:white;font-family:Arial,sans-serif}
-header{background:#1d1d1d;padding:20px;border-bottom:3px solid #e22}
-h1{margin:0;font-size:27px}
-h1 span{color:#e33}
-main{padding:15px;max-width:850px;margin:auto}
-section{background:#202020;padding:18px;border-radius:12px;margin:12px 0}
-input,select,textarea{width:100%;padding:12px;margin:6px 0 12px;background:#111;color:white;border:1px solid #555;border-radius:7px;font-size:16px}
-button{padding:12px;border:0;border-radius:8px;background:#d22;color:white;font-weight:bold;margin:5px;cursor:pointer}
-nav{display:flex;flex-wrap:wrap;gap:5px}
-nav button{flex:1}
-label{font-size:13px;color:#bbb}
-.item{background:#292929;padding:13px;margin:9px 0;border-radius:8px}
-small{color:#aaa}
-.hidden{display:none}
-.status{color:#ffb3b3;white-space:pre-wrap}
-</style>
-</head>
-<body>
-<header>
-<h1>JB <span>GARAGE</span></h1>
-<small>Gestión de taller mecánico</small>
-</header>
-<main>
-<section id="login">
-<h2>Acceso administrador</h2>
-<form id="loginForm">
-<label>Correo electrónico</label>
-<input id="email" type="email" required>
-<label>Contraseña</label>
-<input id="password" type="password" required>
-<button>Entrar</button>
-</form>
-<p id="loginMsg" class="status"></p>
-</section>
-
-<div id="app" class="hidden">
-<nav>
-<button onclick="show('clientes')">Clientes</button>
-<button onclick="show('vehiculos')">Vehículos</button>
-<button onclick="show('ordenes')">Entradas</button>
-<button onclick="logout()">Salir</button>
-</nav>
-
-<section id="clientes">
-<h2>Clientes</h2>
-<form id="clientForm">
-<label>Nombre y apellidos</label>
-<input name="name" required>
-<label>DNI / NIF</label>
-<input name="nif">
-<label>Teléfono</label>
-<input name="phone" type="tel">
-<label>Correo electrónico</label>
-<input name="email" type="email">
-<label>Dirección</label>
-<input name="address">
-<label>Observaciones</label>
-<textarea name="notes"></textarea>
-<button>Guardar cliente</button>
-</form>
-<h3>Clientes registrados</h3>
-<div id="clientList"></div>
-</section>
-
-<section id="vehiculos" class="hidden">
-<h2>Vehículos</h2>
-<form id="carForm">
-<label>Cliente propietario</label>
-<select name="client_id" id="carClient" required></select>
-<label>Matrícula</label>
-<input name="plate" required>
-<label>Marca</label>
-<input name="make">
-<label>Modelo</label>
-<input name="model">
-<label>Bastidor (VIN)</label>
-<input name="vin">
-<label>Kilómetros</label>
-<input name="km" type="number" min="0">
-<label>Observaciones</label>
-<textarea name="notes"></textarea>
-<button>Guardar vehículo</button>
-</form>
-<h3>Vehículos registrados</h3>
-<div id="carList"></div>
-</section>
-
-<section id="ordenes" class="hidden">
-<h2>Entradas al taller</h2>
-<form id="jobForm">
-<label>Vehículo</label>
-<select name="car_id" id="jobCar" required></select>
-<label>Fecha de entrada</label>
-<input name="entry_date" type="date" required>
-<label>Kilómetros de entrada</label>
-<input name="km" type="number" min="0">
-<label>Estado</label>
-<select name="status">
-<option>Recibido</option>
-<option>En diagnóstico</option>
-<option>En reparación</option>
-<option>Terminado</option>
-<option>Entregado</option>
-</select>
-<label>Avería o trabajo solicitado</label>
-<textarea name="complaint"></textarea>
-<label>Trabajos realizados</label>
-<textarea name="work_done"></textarea>
-<button>Guardar entrada</button>
-</form>
-<h3>Órdenes registradas</h3>
-<div id="jobList"></div>
-</section>
-<p id="message" class="status"></p>
-</div>
-</main>
-
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>JB GARAGE v3</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><style>
+*{box-sizing:border-box}body{margin:0;background:#111;color:#f6f6f6;font:15px system-ui,Arial}header{background:#1e1e1e;border-bottom:3px solid #d22;padding:18px}header strong{font-size:26px}header b{color:#e33}main{max-width:1000px;margin:auto;padding:16px}section{background:#202020;border:1px solid #363636;border-radius:12px;padding:17px;margin:13px 0}input,select,textarea{width:100%;padding:11px;background:#111;border:1px solid #555;border-radius:7px;color:#fff;font:inherit;margin:5px 0 12px}label{display:block;color:#ddd;font-size:13px}button{background:#c22;color:white;border:0;border-radius:7px;padding:11px 15px;font-weight:700;cursor:pointer;margin:3px}button.alt{background:#444}nav{display:flex;flex-wrap:wrap;gap:6px}nav button{flex:1 1 125px}.hide{display:none}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}.item{background:#2b2b2b;border-radius:8px;padding:12px;margin:8px 0}.muted{color:#bbb}.error{color:#ff9b9b;white-space:pre-wrap}.good{color:#a9ecb3}.line{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:6px;align-items:center}.line input{margin:0}.line button{margin:0}@media(max-width:650px){.line{grid-template-columns:1fr 1fr}.line input:first-child{grid-column:1/-1}}canvas{width:100%;height:180px;background:white;touch-action:none;border-radius:8px;border:1px solid #999}table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #555;text-align:left}small{color:#bbb}
+</style></head><body><header><strong>JB <b>GARAGE</b></strong><div><small>Gestión de taller · Versión 3 (pruebas)</small></div></header><main>
+<section id="login"><h2>Acceso administrador</h2><form id="loginForm"><label>Correo</label><input id="email" type="email" autocomplete="username" required><label>Contraseña</label><input id="password" type="password" autocomplete="current-password" required><button>Entrar</button></form><p id="loginMsg" class="error"></p></section>
+<div id="app" class="hide"><nav><button data-tab="clientes">Clientes</button><button data-tab="vehiculos">Vehículos</button><button data-tab="ordenes">Entradas</button><button data-tab="documentos">Documentos</button><button data-tab="cobros">Cobros</button><button data-tab="gastos">Gastos</button><button id="logout" class="alt">Salir</button></nav>
+<section id="clientes"><h2>Clientes</h2><form id="clientForm"><input type="hidden" name="id"><div class="grid"><label>Nombre<input name="name" required></label><label>NIF<input name="nif"></label><label>Teléfono<input name="phone"></label><label>Email<input name="email" type="email"></label></div><label>Dirección<input name="address"></label><label>Notas<textarea name="notes"></textarea></label><button>Guardar cliente</button><button type="button" class="alt" onclick="resetForm('clientForm')">Nuevo</button></form><div id="clientList"></div></section>
+<section id="vehiculos" class="hide"><h2>Vehículos</h2><form id="carForm"><input type="hidden" name="id"><label>Propietario<select name="client_id" id="carClient" required></select></label><div class="grid"><label>Matrícula<input name="plate" required></label><label>Marca<input name="make"></label><label>Modelo<input name="model"></label><label>Bastidor<input name="vin"></label><label>Kilómetros<input name="km" type="number" min="0"></label></div><label>Notas<textarea name="notes"></textarea></label><button>Guardar vehículo</button><button type="button" class="alt" onclick="resetForm('carForm')">Nuevo</button></form><div id="carList"></div></section>
+<section id="ordenes" class="hide"><h2>Entradas al taller</h2><form id="jobForm"><input type="hidden" name="id"><label>Vehículo<select name="car_id" id="jobCar" required></select></label><div class="grid"><label>Fecha<input name="entry_date" type="date" required></label><label>Kilómetros<input name="km" type="number" min="0"></label><label>Estado<select name="status"><option>Recibido</option><option>En diagnóstico</option><option>En reparación</option><option>Terminado</option><option>Entregado</option></select></label></div><label>Trabajo solicitado<textarea name="complaint"></textarea></label><label>Trabajo realizado<textarea name="work_done"></textarea></label><button>Guardar entrada</button><button type="button" class="alt" onclick="resetForm('jobForm')">Nueva</button></form><div id="jobList"></div></section>
+<section id="documentos" class="hide"><h2>Presupuestos, albaranes y facturas</h2><p class="muted">Versión de pruebas: los documentos se guardan como borradores. La emisión fiscal definitiva y la numeración legal requieren completar las validaciones antes de su uso real.</p><form id="docForm"><label>Tipo<select name="doc_type"><option value="presupuesto">Presupuesto</option><option value="albaran">Albarán</option><option value="factura">Factura (borrador)</option></select></label><div class="grid"><label>Cliente<select name="client_id" id="docClient" required></select></label><label>Vehículo<select name="car_id" id="docCar"></select></label><label>Entrada asociada<select name="job_id" id="docJob"></select></label><label>Fecha<input name="issue_date" type="date" required></label></div><label>Notas<textarea name="notes"></textarea></label><h3>Conceptos</h3><div id="lines"></div><button type="button" class="alt" id="addLine">+ Añadir concepto</button><p id="totals"></p><button>Guardar borrador</button></form><h3>Documentos guardados</h3><div id="docList"></div></section>
+<section id="cobros" class="hide"><h2>Cobros</h2><form id="receiptForm"><label>Documento<select name="document_id" id="receiptDoc" required></select></label><div class="grid"><label>Importe (€)<input name="amount" type="number" min="0.01" step="0.01" required></label><label>Fecha<input name="payment_date" type="date" required></label><label>Método<select name="payment_method"><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option><option value="tarjeta">Tarjeta</option><option value="otro">Otro</option></select></label></div><label>Notas<input name="notes"></label><button>Guardar cobro</button></form><div id="receiptList"></div></section>
+<section id="gastos" class="hide"><h2>Gastos</h2><form id="expenseForm"><label>Descripción<input name="description" required></label><div class="grid"><label>Proveedor<input name="supplier"></label><label>Importe (€)<input name="amount" type="number" min="0" step="0.01" required></label><label>Fecha<input name="expense_date" type="date" required></label></div><label>Notas<input name="notes"></label><button>Guardar gasto</button></form><div id="expenseList"></div></section>
+<section><h2>Firma del cliente (prueba)</h2><p class="muted">Selecciona una entrada o documento, dibuja la firma y guárdala. Utiliza solo datos ficticios hasta revisar el texto de consentimiento y el procedimiento de firma.</p><label>Asociar firma a<select id="signatureTarget"></select></label><label>Nombre de quien firma<input id="signerName"></label><canvas id="signature" width="900" height="270"></canvas><div><button class="alt" id="clearSignature">Borrar firma</button><button id="saveSignature">Guardar firma</button></div></section><p id="message" role="status"></p></div></main>
 <script>
-const URL_SUPA="https://udzkofwobmbechzubgfy.supabase.co";
-const KEY="sb_publishable_isb-Y6pov01tXKmL3mMVDQ_etfpxYn5";
-const db=window.supabase.createClient(URL_SUPA,KEY);
-let user=null;
-let clients=[],cars=[],jobs=[];
-
-function el(id){return document.getElementById(id)}
-function safe(s){
-return String(s??"").replace(/[&<>"']/g,c=>({
-"&":"&amp;","<":"&lt;",">":"&gt;",
-'"':"&quot;","'":"&#39;"
-})[c]);
-}
-function show(id){
-["clientes","vehiculos","ordenes"].forEach(x=>
-el(x).classList.toggle("hidden",x!==id));
-}
-function msg(t){el("message").textContent=t}
-
-el("loginForm").onsubmit=async e=>{
-e.preventDefault();
-el("loginMsg").textContent="Comprobando acceso...";
-const {data,error}=await db.auth.signInWithPassword({
-email:el("email").value.trim(),
-password:el("password").value
-});
-if(error){el("loginMsg").textContent=error.message;return}
-await start(data.user);
-};
-
-async function start(u){
-user=u;
-el("login").classList.add("hidden");
-el("app").classList.remove("hidden");
-el("password").value="";
-await load();
-}
-async function logout(){
-await db.auth.signOut();
-user=null;
-el("app").classList.add("hidden");
-el("login").classList.remove("hidden");
-el("loginMsg").textContent="";
-}
-async function load(){
-msg("Cargando datos...");
-const [a,b,c]=await Promise.all([
-db.from("jb_clients").select("*").order("created_at",{ascending:false}),
-db.from("jb_cars").select("*").order("created_at",{ascending:false}),
-db.from("jb_jobs").select("*").order("created_at",{ascending:false})
-]);
-const errors=[a.error,b.error,c.error].filter(Boolean);
-if(errors.length){msg(errors.map(x=>x.message).join("\n"));return}
-clients=a.data||[];
-cars=b.data||[];
-jobs=c.data||[];
-render();
-msg("");
-}
-function options(rows,id,label){
-const sel=el(id);
-sel.replaceChildren();
-const first=document.createElement("option");
-first.value="";
-first.textContent="Seleccionar...";
-sel.append(first);
-rows.forEach(r=>{
-const opt=document.createElement("option");
-opt.value=r.id;
-opt.textContent=label(r);
-sel.append(opt);
-});
-}
-function render(){
-options(clients,"carClient",x=>x.name);
-options(cars,"jobCar",x=>x.plate+" · "+(x.make||"")+" "+(x.model||""));
-el("clientList").innerHTML=clients.map(x=>
-`<div class="item"><b>${safe(x.name)}</b><p>${safe(x.phone)} · ${safe(x.nif)}</p><small>${safe(x.email)}</small></div>`
-).join("")||"<p>Sin clientes todavía.</p>";
-el("carList").innerHTML=cars.map(x=>{
-const owner=clients.find(c=>c.id===x.client_id);
-return `<div class="item"><b>${safe(x.plate)}</b><p>${safe(x.make)} ${safe(x.model)}</p><small>Cliente: ${safe(owner?.name||"")}</small></div>`;
-}).join("")||"<p>Sin vehículos todavía.</p>";
-el("jobList").innerHTML=jobs.map(x=>{
-const car=cars.find(c=>c.id===x.car_id);
-return `<div class="item"><b>${safe(car?.plate||"Vehículo")}</b><p>${safe(x.entry_date)} · ${safe(x.status)}</p><p>${safe(x.complaint)}</p><small>${safe(x.work_done)}</small></div>`;
-}).join("")||"<p>Sin entradas todavía.</p>";
-}
-async function save(formId,table){
-const form=el(formId);
-const fd=new FormData(form);
-const record=Object.fromEntries(fd.entries());
-record.user_id=user.id;
-if("km" in record)record.km=record.km===""?null:Number(record.km);
-msg("Guardando...");
-const {error}=await db.from(table).insert(record);
-if(error){msg("Error: "+error.message);return}
-form.reset();
-if(formId==="jobForm")el("jobDate").valueAsDate=new Date();
-await load();
-msg("Guardado correctamente.");
-}
-el("clientForm").onsubmit=e=>{
-e.preventDefault();save("clientForm","jb_clients");
-};
-el("carForm").onsubmit=e=>{
-e.preventDefault();save("carForm","jb_cars");
-};
-el("jobForm").onsubmit=e=>{
-e.preventDefault();save("jobForm","jb_jobs");
-};
-el("jobForm").querySelector('[name="entry_date"]').id="jobDate";
-el("jobDate").valueAsDate=new Date();
-db.auth.getUser().then(({data})=>{
-if(data?.user)start(data.user);
-});
-</script>
-</body>
-</html>
+const db=window.supabase.createClient('https://udzkofwobmbechzubgfy.supabase.co','sb_publishable_isb-Y6pov01tXKmL3mMVDQ_etfpxYn5');
+const $=id=>document.getElementById(id), escapeHTML=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>Number(n||0).toLocaleString('es-ES',{style:'currency',currency:'EUR'});let user=null, data={};const tables={clients:'jb_clients',cars:'jb_cars',jobs:'jb_jobs',docs:'jb_documents',items:'jb_document_items',receipts:'jb_receipts',expenses:'jb_expenses'};
+function notify(s,error=false){$('message').textContent=s;$('message').className=error?'error':'good'}
+function tab(name){['clientes','vehiculos','ordenes','documentos','cobros','gastos'].forEach(id=>$(id).classList.toggle('hide',id!==name));window.scrollTo(0,0)}
+document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>tab(b.dataset.tab));
+$('loginForm').onsubmit=async e=>{e.preventDefault();$('loginMsg').textContent='Comprobando…';const {data:result,error}=await db.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error){$('loginMsg').textContent=error.message;return}await start(result.user)};
+async function start(u){user=u;$('login').classList.add('hide');$('app').classList.remove('hide');$('password').value='';await load()}
+$('logout').onclick=async()=>{await db.auth.signOut();user=null;$('app').classList.add('hide');$('login').classList.remove('hide')};
+async function load(){notify('Cargando…');const keys=Object.keys(tables),res=await Promise.all(keys.map(k=>db.from(tables[k]).select('*').order('created_at',{ascending:false}).limit(1000)));const errors=res.filter(x=>x.error).map(x=>x.error.message);if(errors.length){notify(errors.join('\n'),true);return}keys.forEach((k,i)=>data[k]=res[i].data||[]);render();notify('Datos sincronizados')}
+function opts(id,rows,label,blank='Seleccionar…'){const s=$(id);s.replaceChildren();const empty=document.createElement('option');empty.value='';empty.textContent=blank;s.append(empty);rows.forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=label(r);s.append(o)})}
+function owner(id){return data.clients.find(x=>x.id===id)?.name||''}function car(id){const x=data.cars.find(x=>x.id===id);return x?`${x.plate} ${x.make||''} ${x.model||''}`:'—'}
+function render(){opts('carClient',data.clients,x=>x.name);opts('docClient',data.clients,x=>x.name);opts('jobCar',data.cars,x=>car(x.id));opts('docCar',data.cars,x=>car(x.id),'Sin vehículo');opts('docJob',data.jobs,x=>`${car(x.car_id)} · ${x.entry_date}`,'Sin entrada');opts('receiptDoc',data.docs,x=>`${x.doc_type} ${x.doc_number||'(borrador)'} · ${money(x.total)}`);opts('signatureTarget',[...data.jobs.map(x=>({id:'job:'+x.id,label:`Entrada · ${car(x.car_id)} · ${x.entry_date}`})),...data.docs.map(x=>({id:'doc:'+x.id,label:`${x.doc_type} · ${owner(x.client_id)} · ${x.issue_date}`}))],x=>x.label);
+$('clientList').innerHTML=data.clients.map(x=>`<div class="item"><b>${escapeHTML(x.name)}</b> · ${escapeHTML(x.phone)} <button class="alt" data-edit="client" data-id="${x.id}">Editar</button></div>`).join('')||'<p>Sin clientes</p>';
+$('carList').innerHTML=data.cars.map(x=>`<div class="item"><b>${escapeHTML(car(x.id))}</b> · ${escapeHTML(owner(x.client_id))}<button class="alt" data-edit="car" data-id="${x.id}">Editar</button></div>`).join('')||'<p>Sin vehículos</p>';
+$('jobList').innerHTML=data.jobs.map(x=>`<div class="item"><b>${escapeHTML(car(x.car_id))}</b> · ${escapeHTML(x.status)} · ${escapeHTML(x.entry_date)}<p>${escapeHTML(x.complaint)}</p><button class="alt" data-edit="job" data-id="${x.id}">Editar</button></div>`).join('')||'<p>Sin entradas</p>';
+$('docList').innerHTML=data.docs.map(x=>`<div class="item"><b>${escapeHTML(x.doc_type.toUpperCase())}</b> · ${escapeHTML(owner(x.client_id))} · ${money(x.total)} · ${escapeHTML(x.status)} <button data-print="${x.id}" class="alt">Vista para imprimir / PDF</button></div>`).join('')||'<p>Sin documentos</p>';
+$('receiptList').innerHTML=data.receipts.map(x=>`<div class="item">${escapeHTML(x.payment_date)} · ${money(x.amount)} · ${escapeHTML(x.payment_method)}</div>`).join('')||'<p>Sin cobros</p>';
+$('expenseList').innerHTML=data.expenses.map(x=>`<div class="item">${escapeHTML(x.expense_date)} · ${escapeHTML(x.description)} · ${money(x.amount)}</div>`).join('')||'<p>Sin gastos</p>';
+document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>edit(b.dataset.edit,b.dataset.id));document.querySelectorAll('[data-print]').forEach(b=>b.onclick=()=>printDoc(b.dataset.print));}
+function resetForm(id){$(id).reset();if($(id).elements.namedItem('id'))$(id).elements.namedItem('id').value='';if(id==='jobForm')setDate('jobForm','entry_date')}
+function edit(type,id){const map={client:['clients','clientForm','clientes'],car:['cars','carForm','vehiculos'],job:['jobs','jobForm','ordenes']};const [key,form,section]=map[type],record=data[key].find(x=>x.id===id);if(!record)return;const f=$(form);Object.entries(record).forEach(([k,v])=>{const input=f.elements.namedItem(k);if(input)input.value=v??''});tab(section);notify('Editando registro. Pulsa Guardar para aplicar cambios.')}
+async function saveForm(e,key){e.preventDefault();const f=e.target,record=Object.fromEntries(new FormData(f));const id=record.id;delete record.id;record.user_id=user.id;if('km'in record)record.km=record.km===''?null:Number(record.km);if('amount'in record)record.amount=Number(record.amount);const query=id?db.from(tables[key]).update(record).eq('id',id):db.from(tables[key]).insert(record);const {error}=await query;if(error){notify(error.message,true);return}resetForm(f.id);await load();notify('Guardado correctamente')}
+[['clientForm','clients'],['carForm','cars'],['jobForm','jobs'],['receiptForm','receipts'],['expenseForm','expenses']].forEach(([id,k])=>$(id).onsubmit=e=>saveForm(e,k));
+function setDate(id,name){$(id).elements.namedItem(name).value=new Date().toLocaleDateString('en-CA')}
+['jobForm:entry_date','docForm:issue_date','receiptForm:payment_date','expenseForm:expense_date'].forEach(x=>{const [f,n]=x.split(':');setDate(f,n)});
+function addLine(){const div=document.createElement('div');div.className='line';div.innerHTML='<input placeholder="Descripción" aria-label="Descripción" class="desc" required><input type="number" min="0.001" step="0.001" value="1" aria-label="Cantidad" class="qty"><input type="number" min="0" step="0.01" value="0" aria-label="Precio unitario" class="price"><select aria-label="IVA" class="tax"><option value="21">IVA 21%</option><option value="10">IVA 10%</option><option value="4">IVA 4%</option><option value="0">IVA 0%</option></select><button type="button" class="alt remove">×</button>';div.querySelector('.remove').onclick=()=>{div.remove();totalLines()};div.querySelectorAll('input,select').forEach(x=>x.addEventListener('input',totalLines));$('lines').append(div);totalLines()}
+$('addLine').onclick=addLine;addLine();function getLines(){return [...document.querySelectorAll('#lines .line')].map(x=>({description:x.querySelector('.desc').value.trim(),quantity:Number(x.querySelector('.qty').value),unit_price:Number(x.querySelector('.price').value),tax_rate:Number(x.querySelector('.tax').value),line_type:'pieza'}))}
+function totals(lines){let base=0,tax=0;for(const x of lines){const v=Math.round(x.quantity*x.unit_price*100)/100;base+=v;tax+=Math.round(v*x.tax_rate)/100}return {subtotal:Math.round(base*100)/100,tax_total:Math.round(tax*100)/100,total:Math.round((base+tax)*100)/100}}
+function totalLines(){const t=totals(getLines());$('totals').textContent=`Base: ${money(t.subtotal)} · IVA: ${money(t.tax_total)} · Total: ${money(t.total)}`}
+$('docForm').onsubmit=async e=>{e.preventDefault();const lines=getLines();if(!lines.length||lines.some(x=>!x.description||x.quantity<=0||x.unit_price<0)){notify('Comprueba los conceptos',true);return}const rec=Object.fromEntries(new FormData(e.target));for(const k of ['car_id','job_id'])if(!rec[k])rec[k]=null;Object.assign(rec,totals(lines),{user_id:user.id,status:'borrador',doc_number:null});notify('Guardando documento…');const {data:doc,error}=await db.from('jb_documents').insert(rec).select('id').single();if(error){notify(error.message,true);return}const {error:lineError}=await db.from('jb_document_items').insert(lines.map(x=>({...x,document_id:doc.id,user_id:user.id})));if(lineError){notify('Documento creado, pero no se guardaron los conceptos: '+lineError.message,true);return}e.target.reset();$('lines').replaceChildren();addLine();setDate('docForm','issue_date');await load();notify('Borrador guardado. No es una factura emitida.')};
+function printDoc(id){const d=data.docs.find(x=>x.id===id);if(!d)return;const lines=data.items.filter(x=>x.document_id===id);const win=window.open('','_blank');if(!win){notify('Permite las ventanas emergentes para abrir el PDF',true);return}const title=d.doc_type.toUpperCase()+' — BORRADOR';const html=`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHTML(title)}</title><style>body{font:14px Arial;margin:35px;color:#111}h1{border-bottom:3px solid #c22;padding-bottom:15px}table{width:100%;border-collapse:collapse;margin-top:25px}th,td{border-bottom:1px solid #ddd;text-align:left;padding:10px}.total{text-align:right;margin-top:25px}.draft{font-size:20px;color:#b22;font-weight:bold}</style></head><body><h1>JB GARAGE</h1><div class="draft">DOCUMENTO DE PRUEBA · NO VÁLIDO COMO FACTURA EMITIDA</div><h2>${escapeHTML(title)}</h2><p>Fecha: ${escapeHTML(d.issue_date)}<br>Cliente: ${escapeHTML(owner(d.client_id))}<br>Vehículo: ${escapeHTML(car(d.car_id))}</p><table><tr><th>Descripción</th><th>Cantidad</th><th>Precio</th><th>IVA</th><th>Subtotal</th></tr>${lines.map(x=>`<tr><td>${escapeHTML(x.description)}</td><td>${x.quantity}</td><td>${money(x.unit_price)}</td><td>${x.tax_rate}%</td><td>${money(x.quantity*x.unit_price)}</td></tr>`).join('')}</table><div class="total">Base: ${money(d.subtotal)}<br>IVA: ${money(d.tax_total)}<h2>Total: ${money(d.total)}</h2></div><p>${escapeHTML(d.notes)}</p><button onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;win.document.write(html);win.document.close()}
+const canvas=$('signature'),ctx=canvas.getContext('2d');ctx.strokeStyle='#111';ctx.lineWidth=3;ctx.lineCap='round';let drawing=false,hasInk=false;function pos(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*canvas.width/r.width,y:(e.clientY-r.top)*canvas.height/r.height}}canvas.onpointerdown=e=>{canvas.setPointerCapture(e.pointerId);drawing=true;const p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y)};canvas.onpointermove=e=>{if(!drawing)return;const p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke();hasInk=true};canvas.onpointerup=()=>drawing=false;$('clearSignature').onclick=()=>{ctx.clearRect(0,0,canvas.width,canvas.height);hasInk=false};
+$('saveSignature').onclick=async()=>{const value=$('signatureTarget').value,signer=$('signerName').value.trim();if(!value||!signer||!hasInk){notify('Selecciona un documento o entrada, indica el nombre y dibuja la firma',true);return}const [type,id]=value.split(':');const path=`${user.id}/${crypto.randomUUID()}.png`;const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!blob){notify('No se pudo generar la firma',true);return}const {error:uploadError}=await db.storage.from('jb-signatures').upload(path,blob,{contentType:'image/png'});if(uploadError){notify(uploadError.message,true);return}const rec={user_id:user.id,signature_path:path,signer_name:signer};rec[type==='job'?'job_id':'document_id']=id;const {error}=await db.from('jb_signatures').insert(rec);if(error){await db.storage.from('jb-signatures').remove([path]);notify(error.message,true);return}$('clearSignature').click();$('signerName').value='';notify('Firma guardada en almacenamiento privado')};
+db.auth.getUser().then(({data:r})=>{if(r?.user)start(r.user)});
+</script></body></html>

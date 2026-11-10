@@ -1,6 +1,6 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>JB GARAGE v4</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><style>
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>JB GARAGE v4.1</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><style>
 *{box-sizing:border-box}body{margin:0;background:#111;color:#f6f6f6;font:15px system-ui,Arial}header{background:#1e1e1e;border-bottom:3px solid #d22;padding:18px}header strong{font-size:26px}header b{color:#e33}main{max-width:1000px;margin:auto;padding:16px}section{background:#202020;border:1px solid #363636;border-radius:12px;padding:17px;margin:13px 0}input,select,textarea{width:100%;padding:11px;background:#111;border:1px solid #555;border-radius:7px;color:#fff;font:inherit;margin:5px 0 12px}label{display:block;color:#ddd;font-size:13px}button{background:#c22;color:white;border:0;border-radius:7px;padding:11px 15px;font-weight:700;cursor:pointer;margin:3px}button.alt{background:#444}nav{display:flex;flex-wrap:wrap;gap:6px}nav button{flex:1 1 125px}.hide{display:none}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}.item{background:#2b2b2b;border-radius:8px;padding:12px;margin:8px 0}.muted{color:#bbb}.error{color:#ff9b9b;white-space:pre-wrap}.good{color:#a9ecb3}.line{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:6px;align-items:center}.line input{margin:0}.line button{margin:0}@media(max-width:650px){.line{grid-template-columns:1fr 1fr}.line input:first-child{grid-column:1/-1}}canvas{width:100%;height:180px;background:white;touch-action:none;border-radius:8px;border:1px solid #999}table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #555;text-align:left}small{color:#bbb}
-</style></head><body><header><strong>JB <b>GARAGE</b></strong><div><small>Gestión de taller · Versión 4 (pruebas)</small></div></header><main>
+</style></head><body><header><strong>JB <b>GARAGE</b></strong><div><small>Gestión de taller · Versión 4.1 (pruebas)</small></div></header><main>
 <section id="login"><h2>Acceso administrador</h2><form id="loginForm"><label>Correo</label><input id="email" type="email" autocomplete="username" required><label>Contraseña</label><input id="password" type="password" autocomplete="current-password" required><button>Entrar</button></form><p id="loginMsg" class="error"></p></section>
 <div id="app" class="hide"><nav><button data-tab="clientes">Clientes</button><button data-tab="vehiculos">Vehículos</button><button data-tab="ordenes">Entradas</button><button data-tab="documentos">Documentos</button><button data-tab="archivo">Archivo</button><button data-tab="cobros">Cobros</button><button data-tab="gastos">Gastos</button><button id="logout" class="alt">Salir</button></nav>
 <section id="clientes"><h2>Clientes</h2><form id="clientForm"><input type="hidden" name="id"><div class="grid"><label>Nombre<input name="name" required></label><label>NIF<input name="nif"></label><label>Teléfono<input name="phone"></label><label>Email<input name="email" type="email"></label></div><label>Dirección<input name="address"></label><label>Notas<textarea name="notes"></textarea></label><button>Guardar cliente</button><button type="button" class="alt" onclick="resetForm('clientForm')">Nuevo</button></form><div id="clientList"></div></section>
@@ -29,12 +29,17 @@ async function load(){
  const res=await Promise.all(keys.map(k=>db.from(tables[k]).select('*').order('created_at',{ascending:false}).limit(1000)));
  const errors=res.map((r,i)=>r.error?`${keys[i]}: ${r.error.message}`:null).filter(Boolean);
  keys.forEach((k,i)=>{if(!res[i].error)data[k]=res[i].data||[];else if(!data[k])data[k]=[]});
- const signaturesResult=await db.from('jb_signatures').select('*').limit(1000);
+   const [signaturesResult,attachmentsResult]=await Promise.all([
+    db.from('jb_signatures').select('*').order('signed_at',{ascending:false}).limit(1000),
+    db.from('jb_attachments').select('*').order('created_at',{ascending:false}).limit(1000)
+  ]);
  data.signatures=signaturesResult.error?[]:(signaturesResult.data||[]);
+  data.attachments=attachmentsResult.error?[]:(attachmentsResult.data||[]);
  render();
+  if(signaturesResult.error)errors.push('firmas: '+signaturesResult.error.message);
+  if(attachmentsResult.error)errors.push('archivos: '+attachmentsResult.error.message);
  if(errors.length)notify('No se pudieron cargar algunos datos: '+errors.join(' | '),true);
- else if(signaturesResult.error)notify('Clientes, vehículos y documentos cargados. No se pudieron consultar las firmas: '+signaturesResult.error.message,true);
- else notify('Datos sincronizados');
+  else notify('Datos sincronizados · '+data.attachments.length+' archivos externos');
 }
 function opts(id,rows,label,blank='Seleccionar…'){const s=$(id);s.replaceChildren();const empty=document.createElement('option');empty.value='';empty.textContent=blank;s.append(empty);rows.forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=label(r);s.append(o)})}
 function owner(id){return data.clients.find(x=>x.id===id)?.name||''}function car(id){const x=data.cars.find(x=>x.id===id);return x?`${x.plate} ${x.make||''} ${x.model||''}`:'—'}
@@ -72,7 +77,15 @@ function renderArchive(){const files=data.attachments||[];const cat=$('archiveCa
 $('attachmentClient').onchange=()=>{const id=$('attachmentClient').value;const selected=$('attachmentCar').value;opts('attachmentCar',data.cars.filter(c=>!id||c.client_id===id),x=>car(x.id),'Sin vehículo');$('attachmentCar').value=selected};
 $('attachmentCar').onchange=()=>{const c=data.cars.find(x=>x.id===$('attachmentCar').value);if(c)$('attachmentClient').value=c.client_id};
 $('attachmentForm').onsubmit=async e=>{e.preventDefault();const file=$('attachmentFile').files[0];if(!file)return;if(file.size>15*1024*1024){notify('Archivo demasiado grande. Máximo 15 MB',true);return}const form=e.target,values=Object.fromEntries(new FormData(form));for(const k of ['client_id','car_id','document_id'])if(!values[k])values[k]=null;const linkedCar=data.cars.find(x=>x.id===values.car_id);if(linkedCar&&values.client_id&&linkedCar.client_id!==values.client_id){notify('El vehículo no pertenece al cliente elegido',true);return}const doc=data.docs.find(x=>x.id===values.document_id);if(doc&&(values.client_id&&doc.client_id!==values.client_id||values.car_id&&doc.car_id!==values.car_id)){notify('El documento seleccionado no corresponde al cliente o vehículo',true);return}const path=`${user.id}/${crypto.randomUUID()}/${file.name.replace(/[^a-zA-Z0-9._-]/g,'_').slice(0,120)||'archivo'}`;notify('Subiendo archivo…');const {error:uploadError}=await db.storage.from('jb-attachments').upload(path,file,{contentType:file.type||'application/octet-stream'});if(uploadError){notify('No se pudo subir: '+uploadError.message,true);return}const rec={...values,user_id:user.id,file_name:file.name,storage_path:path,mime_type:file.type||null,file_size:file.size};const {error}=await db.from('jb_attachments').insert(rec);if(error){await db.storage.from('jb-attachments').remove([path]);notify('No se pudo registrar el archivo: '+error.message,true);return}form.reset();await load();notify('Archivo guardado en carpeta privada');};
-async function openAttachment(id){const f=(data.attachments||[]).find(x=>x.id===id);if(!f)return;const {data:res,error}=await db.storage.from('jb-attachments').createSignedUrl(f.storage_path,120,{download:f.file_name});if(error){notify(error.message,true);return}window.open(res.signedUrl,'_blank','noopener');}
+async function openAttachment(id){
+ const f=(data.attachments||[]).find(x=>x.id===id);if(!f)return;
+ const win=window.open('','_blank');
+ if(!win){notify('El navegador ha bloqueado la ventana. Permite ventanas emergentes para JB GARAGE.',true);return}
+ win.document.write('<!doctype html><html lang="es"><meta charset="utf-8"><title>Abriendo archivo</title><p>Preparando acceso seguro al archivo…</p>');win.document.close();
+ const {data:res,error}=await db.storage.from('jb-attachments').createSignedUrl(f.storage_path,120);
+ if(error||!res?.signedUrl){win.close();notify('No se pudo abrir el archivo: '+(error?.message||'enlace no disponible'),true);return}
+ win.location.replace(res.signedUrl);
+}
 async function deleteAttachment(id){const f=(data.attachments||[]).find(x=>x.id===id);if(!f||!confirm(`¿Eliminar definitivamente ${f.file_name}?`))return;const {error}=await db.storage.from('jb-attachments').remove([f.storage_path]);if(error){notify('No se pudo borrar el archivo: '+error.message,true);return}const {error:dbError}=await db.from('jb_attachments').delete().eq('id',id);if(dbError){notify('Archivo borrado, pero quedó su registro: '+dbError.message,true);return}await load();notify('Archivo eliminado');}
 async function printDoc(id){
  const d=data.docs.find(x=>x.id===id);if(!d)return;

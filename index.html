@@ -1,4 +1,4 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>JB GARAGE v8.5</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.2/dist/html2pdf.bundle.min.js"></script><style>
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>JB GARAGE v8.6</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.2/dist/html2pdf.bundle.min.js"></script><style>
 *{box-sizing:border-box}body{margin:0;background:#111;color:#f6f6f6;font:15px system-ui,Arial}header{background:#1e1e1e;border-bottom:3px solid #d22;padding:18px}header strong{font-size:26px}header b{color:#e33}main{max-width:1000px;margin:auto;padding:16px}section{background:#202020;border:1px solid #363636;border-radius:12px;padding:17px;margin:13px 0}input,select,textarea{width:100%;padding:11px;background:#111;border:1px solid #555;border-radius:7px;color:#fff;font:inherit;margin:5px 0 12px}label{display:block;color:#ddd;font-size:13px}button{background:#c22;color:white;border:0;border-radius:7px;padding:11px 15px;font-weight:700;cursor:pointer;margin:3px}button.alt{background:#444}nav{display:flex;flex-wrap:wrap;gap:6px}nav button{flex:1 1 125px}.hide{display:none}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}.item{background:#2b2b2b;border-radius:8px;padding:12px;margin:8px 0}.muted{color:#bbb}.error{color:#ff9b9b;white-space:pre-wrap}.good{color:#a9ecb3}.line{display:grid;grid-template-columns:1fr 2fr 1fr 1fr 1fr auto;gap:6px;align-items:center}.line input{margin:0}.line button{margin:0}@media(max-width:650px){.line{grid-template-columns:1fr 1fr}.line .desc{grid-column:1/-1}}canvas{width:100%;height:180px;background:white;touch-action:none;border-radius:8px;border:1px solid #999}.agenda-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}.agenda-head{text-align:center;font-weight:700;padding:8px}.agenda-cell{background:#292929;border:1px solid #444;min-height:82px;text-align:left;padding:6px;margin:0;overflow:hidden}.agenda-cell small{display:block;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.agenda-active{outline:2px solid #f44}@media(max-width:650px){.agenda-cell{min-height:64px;padding:3px}.agenda-cell small{font-size:9px}}table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #555;text-align:left}small{color:#bbb}
 
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:30;box-shadow:0 4px 15px #0005}#menuToggle{font-size:22px;background:#333;min-width:48px}#appNav{display:none;position:fixed;top:0;right:0;bottom:0;width:min(340px,88vw);z-index:50;background:#1d1d1d;box-shadow:-8px 0 35px #0009;padding:18px;overflow-y:auto;flex-direction:column;align-items:stretch;gap:4px}#appNav.open{display:flex}#appNav button{flex:none;text-align:left;width:100%;margin:0;background:#292929}#appNav button:hover{background:#484848}#appNav .navGroup{font-size:12px;color:#aaa;letter-spacing:.09em;text-transform:uppercase;margin:14px 0 4px;padding:0 8px}#navShade{display:none;position:fixed;inset:0;background:#0009;z-index:45}#navShade.open{display:block}.kpi{background:#292929;border:1px solid #393939;border-radius:12px;padding:16px}.kpi small{display:block}.kpi strong{display:block;font-size:26px;margin-top:9px}.quick-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px}.quick-actions button{margin:0;min-height:46px}.panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.panel-sub{color:#bbb;font-size:13px}
@@ -775,34 +775,29 @@ async function shareDocumentPDF(kind,id){
   if(!html)throw Error('No se ha podido generar el documento.');
   const parsed=new DOMParser().parseFromString(html,'text/html');
   parsed.querySelectorAll('script,button').forEach(el=>el.remove());
-  // v8.4: renderizar el documento en un iframe aislado para evitar que
-  // los estilos oscuros del panel oculten el contenido del PDF.
-  const holder=document.createElement('iframe');
+  // v8.6: renderizar el PDF en un contenedor del documento principal.
+  // html2pdf necesita un elemento conectado al documento visible para html2canvas;
+  // un iframe desplazado fuera de pantalla podía capturar solo la cabecera.
+  const holder=document.createElement('div');
   holder.setAttribute('aria-hidden','true');
-  holder.style.cssText='position:absolute;left:-10000px;top:0;width:794px;height:1123px;border:0;opacity:1;pointer-events:none;';
+  holder.style.cssText='position:fixed;left:0;top:0;width:794px;z-index:-1;pointer-events:none;background:white;color:#111;overflow:visible;';
   document.body.appendChild(holder);
   try{
-   const frameDoc=holder.contentDocument;
-   frameDoc.open();frameDoc.write(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));frameDoc.close();
-   frameDoc.querySelectorAll('button,script').forEach(el=>el.remove());
-   const content=frameDoc.body;
-   content.style.cssText='margin:0;padding:22px;box-sizing:border-box;width:794px;min-height:50px;background:#fff;color:#111;font-family:Arial,sans-serif;';
+   const content=document.createElement('div');
+   content.className='jb-pdf-render';
+   content.style.cssText='box-sizing:border-box;width:794px;padding:35px;background:#fff;color:#111;font:14px Arial,sans-serif;line-height:1.4;';
+   content.innerHTML=parsed.body.innerHTML;
+   holder.appendChild(content);
+   // Estilos propios de impresión, sin heredar el diseño oscuro de JB GARAGE.
+   const pdfStyle=document.createElement('style');
+   pdfStyle.textContent=`.jb-pdf-render *{box-sizing:border-box;color:#111} .jb-pdf-render h1{font-size:28px;border-bottom:3px solid #c22;padding-bottom:15px;margin:0 0 18px} .jb-pdf-render h2{font-size:22px;margin:18px 0 10px} .jb-pdf-render h3{font-size:17px;margin:18px 0 10px}.jb-pdf-render p{margin:12px 0;white-space:normal}.jb-pdf-render table{width:100%;border-collapse:collapse;table-layout:auto;margin:18px 0}.jb-pdf-render td,.jb-pdf-render th{border-bottom:1px solid #ddd;padding:8px 5px;text-align:left;font-size:12px;overflow-wrap:anywhere}.jb-pdf-render .draft{font-size:18px;color:#b22;font-weight:bold}.jb-pdf-render .total{text-align:right;margin-top:20px}.jb-pdf-render .signature{margin-top:22px;break-inside:avoid}.jb-pdf-render .signature img{display:block;width:320px;max-width:100%;height:110px;object-fit:contain}.jb-pdf-render .box{border:1px solid #aaa;padding:12px;white-space:pre-wrap}.jb-pdf-render img{max-width:100%}`;
+   holder.appendChild(pdfStyle);
    await Promise.all([...content.querySelectorAll('img')].map(img=>new Promise(resolve=>{if(img.complete)return resolve();img.addEventListener('load',resolve,{once:true});img.addEventListener('error',resolve,{once:true});setTimeout(resolve,5000)})));
    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-   const fullHeight=Math.max(content.scrollHeight,frameDoc.documentElement.scrollHeight,1123);
-   holder.style.height=fullHeight+'px';
-   content.style.minHeight=fullHeight+'px';
-   await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
    if(content.innerText.trim().length<80)throw Error('El documento no contiene texto suficiente para generar el PDF.');
-   const blob=await html2pdf().set({margin:8,filename,image:{type:'jpeg',quality:0.96},html2canvas:{scale:1.5,useCORS:true,logging:false,windowWidth:794,windowHeight:fullHeight,scrollX:0,scrollY:0},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy']}}).from(content).outputPdf('blob');
-   if(!blob||blob.size<100)throw Error('El PDF generado está vacío.');
-   // Comprobación visual antes del envío: el usuario puede cancelar si faltan páginas.
-   const previewUrl=URL.createObjectURL(blob);
-   const previewWindow=window.open(previewUrl,'_blank');
-   if(!previewWindow){notify('No se pudo abrir la vista previa; revisa el bloqueo de ventanas emergentes.');}
-   const approved=confirm('Revisa el PDF en la pestaña de vista previa. ¿Aparecen TODOS los datos y páginas? Pulsa Aceptar solo si está completo.');
-   setTimeout(()=>URL.revokeObjectURL(previewUrl),120000);
-   if(!approved){notify('Envío cancelado: revisa el PDF antes de enviarlo.');return;}
+   const blob=await html2pdf().set({margin:8,filename,image:{type:'jpeg',quality:0.98},html2canvas:{scale:2,useCORS:true,logging:false,scrollX:0,scrollY:0,windowWidth:Math.max(window.innerWidth,820),windowHeight:Math.max(window.innerHeight,content.scrollHeight+100)},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy']}}).from(content).outputPdf('blob');
+   if(!blob||blob.size<1500)throw Error('El PDF generado parece vacío. No se enviará.');
+   // No abrir pestañas ni interrumpir el flujo de envío.
    // v8.3: envío mediante función Edge autenticada, sin menú de compartir.
    const carId=kind==='doc'?(doc.car_id||null):(job.car_id||null);
    const vehicle=(data.cars||[]).find(c=>c.id===carId);

@@ -136,7 +136,7 @@ function render(){renderAlerts();renderAgenda();const selected={};for(const id o
  opts('signatureTarget',[...data.jobs.map(x=>({id:'job:'+x.id,label:`Entrada · ${car(x.car_id)} · ${x.entry_date}`})),...data.docs.filter(x=>x.doc_type!=='factura').map(x=>({id:'doc:'+x.id,label:`${x.doc_type} · ${owner(x.client_id)} · ${x.issue_date}`}))],x=>x.label);
 $('clientList').innerHTML=data.clients.map(x=>`<div class="item"><b>${escapeHTML(x.name)}</b> · ${escapeHTML(x.phone)} <button class="alt" data-edit="client" data-id="${x.id}">Editar</button></div>`).join('')||'<p>Sin clientes</p>';
 $('carList').innerHTML=data.cars.map(x=>`<div class="item"><b>${escapeHTML(car(x.id))}</b> · ${escapeHTML(owner(x.client_id))}<button class="alt" data-edit="car" data-id="${x.id}">Editar</button></div>`).join('')||'<p>Sin vehículos</p>';
-$('jobList').innerHTML=data.jobs.map(x=>`<div class="item"><b>${escapeHTML(x.order_number||'Orden sin número')}</b> · ${escapeHTML(car(x.car_id))} · ${escapeHTML(x.status)} · ${escapeHTML(x.entry_date)}<p>${escapeHTML(x.complaint)}</p><p class="good">Total: ${money(jobTotal((data.jobLines||[]).filter(l=>l.job_id===x.id)).total)}</p><button class="alt" data-edit="job" data-id="${x.id}">Abrir ficha</button><button class="alt" data-jobphotos="${x.id}">📸 Fotografías</button><button class="alt" data-jobprint="${x.id}">Resguardo PDF</button><button class="alt" data-jobinvoice="${x.id}">${linkedJobInvoice(x.id)?"🧾 Abrir factura existente":"🧾 Crear factura"}</button>${jobIsSigned(x.id)?'<span class="good">✓ Orden firmada</span>':`<button class="alt" data-jobsign="${x.id}">Firmar entrada</button>`}</div>`).join('')||'<p>Sin entradas</p>';
+$('jobList').innerHTML=data.jobs.map(x=>`<div class="item"><b>${escapeHTML(x.order_number||'Orden sin número')}</b> · ${escapeHTML(car(x.car_id))} · ${escapeHTML(x.status)} · ${escapeHTML(x.entry_date)}<p>${escapeHTML(x.complaint)}</p><p class="good">Total: ${money(jobTotal((data.jobLines||[]).filter(l=>l.job_id===x.id)).total)}</p><button class="alt" data-edit="job" data-id="${x.id}">Abrir ficha</button><button class="alt" data-jobphotos="${x.id}">📸 Fotografías</button><button class="alt" data-jobprint="${x.id}">Resguardo PDF</button><button class="alt" data-jobinvoice="${x.id}">${linkedJobInvoice(x.id)?"🧾 Ver factura / PDF":"🧾 Crear factura"}</button>${jobIsSigned(x.id)?'<span class="good">✓ Orden firmada</span>':`<button class="alt" data-jobsign="${x.id}">Firmar entrada</button>`}</div>`).join('')||'<p>Sin entradas</p>';
 const docSearch=$('docSearch').value.trim().toLocaleLowerCase();
  const invoiceDrafts=data.docs.filter(x=>x.doc_type==='factura');
  const billed=invoiceDrafts.reduce((sum,x)=>sum+Number(x.total||0),0);
@@ -193,8 +193,8 @@ function refreshJobInvoiceButton(id){
  const b=$('jobCreateInvoice');if(!b)return;
  const invoice=linkedJobInvoice(id);
  b.disabled=!id;
- b.textContent=invoice?'🧾 Abrir factura existente':'🧾 Crear factura desde esta orden';
- b.title=invoice?'Abrir el borrador vinculado a esta orden':'Preparar borrador de factura desde los conceptos de esta orden';
+ b.textContent=invoice?'🧾 Ver factura / PDF':'🧾 Crear factura desde esta orden';
+ b.title=invoice?'Abrir la vista para imprimir o guardar como PDF':'Preparar borrador de factura desde los conceptos de esta orden';
 }
 // v7.1: generar un borrador editable desde los conceptos guardados de la orden.
 function invoiceFromJob(id){
@@ -203,7 +203,7 @@ function invoiceFromJob(id){
  const vehicle=(data.cars||[]).find(c=>c.id===job.car_id);
  if(!vehicle?.client_id){notify('El vehículo debe tener un cliente asignado.',true);return}
  const invoice=linkedJobInvoice(id);
- if(invoice){editDoc(invoice.id);return}
+ if(invoice){printDoc(invoice.id);return}
  const saved=(data.jobLines||[]).filter(l=>l.job_id===id);
  if(!saved.length){notify('Primero añade y guarda recambios o mano de obra en la orden.',true);return}
  if(saved.some(l=>!l.description||Number(l.quantity)<=0||Number(l.unit_price)<0||Number(l.discount_percent||0)<0||Number(l.discount_percent||0)>100)){

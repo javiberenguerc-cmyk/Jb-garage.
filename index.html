@@ -629,8 +629,15 @@ $('intakeForm').onsubmit=async e=>{
  if(directIntakeMode){
   const carId=$('directIntakeCar').value,vehicle=(data.cars||[]).find(c=>c.id===carId);
   if(!vehicle){$('intakeStatus').textContent='Selecciona un vehículo.';return}
-  const existing=(data.jobs||[]).find(j=>j.car_id===carId&&['Recibido','En diagnóstico','En reparación','Esperando recambios','Terminado','Esperando entrega'].includes(j.status));
-  if(existing){$('intakeStatus').textContent='Este vehículo ya tiene una orden activa. Abre su ficha desde Órdenes de reparación.';return}
+  const activeStatuses=['Recibido','En diagnóstico','En reparación','Esperando recambios','Terminado','Esperando entrega'];
+  const {data:serverJobs,error:checkError}=await db.from('jb_jobs').select('*').eq('car_id',carId).eq('user_id',user.id).order('created_at',{ascending:false}).limit(100);
+  if(checkError){$('intakeStatus').textContent='No se pudo comprobar si existe una orden: '+checkError.message;return}
+  const existing=(serverJobs||[]).find(j=>activeStatuses.includes(j.status));
+  if(existing){
+   if(!(data.jobs||[]).some(j=>j.id===existing.id))data.jobs=[existing,...(data.jobs||[])];
+   render();directIntakeMode=false;edit('job',existing.id);
+   notify('Esta matrícula ya tiene una orden activa en Supabase. Se ha abierto la orden existente para evitar duplicados.');return;
+  }
   if(!confirm('¿Registrar entrada sin cita de '+car(carId)+'?'))return;
   const btn=$('intakeConfirm');btn.disabled=true;$('intakeStatus').textContent='Guardando recepción…';
   const fields=Object.fromEntries(new FormData(e.target));fields.km=fields.km===''?null:Number(fields.km);
@@ -638,8 +645,11 @@ $('intakeForm').onsubmit=async e=>{
   if(checked.length)fields.intake_damage=[fields.intake_damage?.trim(), 'Inspección visual realizada: '+checked.join(', ')].filter(Boolean).join('\n');
   const {data:created,error}=await db.from('jb_jobs').insert({...fields,user_id:user.id,car_id:carId,entry_date:new Date().toLocaleDateString('en-CA'),status:'Recibido'}).select('id').single();
   if(error){btn.disabled=false;$('intakeStatus').textContent='Error al crear la orden: '+error.message;return}
-  await load();directIntakeMode=false;edit('job',created.id);$('jobPhotoCategory').value='recepcion';
-  notify('Entrada directa registrada. Puedes añadir fotos y recoger la firma del cliente.');return;
+  const {data:verified,error:verifyError}=await db.from('jb_jobs').select('*').eq('id',created.id).eq('user_id',user.id).maybeSingle();
+  if(verifyError||!verified){btn.disabled=false;$('intakeStatus').textContent='La inserción devolvió un identificador, pero no se pudo verificar la orden en Supabase. ID: '+created.id+(verifyError?' · '+verifyError.message:'');return}
+  await load();if(!(data.jobs||[]).some(j=>j.id===verified.id)){data.jobs=[verified,...(data.jobs||[])];render();}
+  directIntakeMode=false;edit('job',verified.id);$('jobPhotoCategory').value='recepcion';
+  notify('✓ Orden '+(verified.order_number||verified.id)+' confirmada en Supabase. Ya puedes añadir fotos y firma.');return;
  }
  const a=(data.appointments||[]).find(x=>x.id===intakeAppointmentId);
  if(!a||!a.car_id){$('intakeStatus').textContent='La cita ya no está disponible.';return}
@@ -660,9 +670,11 @@ $('intakeForm').onsubmit=async e=>{
   if(error){btn.disabled=false;$('intakeStatus').textContent='Error al crear la orden: '+error.message;return}
   jobId=created.id;
  }
+ const {data:verifiedAppointmentJob,error:verifyAppointmentError}=await db.from('jb_jobs').select('*').eq('id',jobId).eq('user_id',user.id).maybeSingle();
+ if(verifyAppointmentError||!verifiedAppointmentJob){btn.disabled=false;$('intakeStatus').textContent='No se ha podido verificar la orden en Supabase: '+(verifyAppointmentError?.message||jobId);return}
  const {error:appointmentError}=await db.from('jb_appointments').update({status:'en_taller',job_id:jobId}).eq('id',a.id).eq('user_id',user.id);
  if(appointmentError){btn.disabled=false;$('intakeStatus').textContent='Orden guardada, pero no se pudo actualizar la cita: '+appointmentError.message;return}
- await load();intakeAppointmentId=null;edit('job',jobId);
+ await load();if(!(data.jobs||[]).some(j=>j.id===jobId)){data.jobs=[verifiedAppointmentJob,...(data.jobs||[])];render();}intakeAppointmentId=null;edit('job',jobId);
  $('jobPhotoCategory').value='recepcion';
  notify('Vehículo recibido y datos guardados. Añade fotografías abajo o pulsa «Firmar entrada del cliente».');
 };
